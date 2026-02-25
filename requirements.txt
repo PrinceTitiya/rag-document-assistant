@@ -1,0 +1,25 @@
+# Core LangChain framework
+langchain
+langchain-core
+langchain-community
+
+# Google Gemini integration
+langchain-google-genai
+google-generativeai
+
+# Vector database
+chromadb
+
+# Embedding models
+sentence-transformers
+langchain-huggingface
+
+# Environment variable management
+python-dotenv
+
+# PDF loading support
+pypdf
+
+# Optional but recommended (performance + compatibility)
+numpy
+tqdm

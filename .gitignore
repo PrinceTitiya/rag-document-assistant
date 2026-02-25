@@ -1,0 +1,5 @@
+.env
+lib
+venv
+data/vectorstore
+.DS_Store
