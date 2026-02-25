@@ -2,42 +2,35 @@
 
 from typing import List, Optional
 from langchain_core.documents import Document
-from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_core.prompts import ChatPromptTemplate
+from langchain_groq import ChatGroq
+
+from src.config import GROQ_API_KEY
 
 
 class RAGGenerator:
-    """
-    Handles prompt construction and LLM response generation.
-    """
 
     def __init__(
         self,
         retriever,
-        model_name: str = "gemini-2.5-flash",
+        model_name: str = "llama-3.1-8b-instant",
         temperature: float = 0.2,
-        top_p: float = 0.9,
+        max_tokens: int = 512,
     ):
-        """
-        Args:
-            retriever: RAGRetriever instance
-            model_name: Gemini model name
-            temperature: randomness control
-            top_p: nucleus sampling parameter
-            max_output_tokens: response length limit
-        """
 
         self.retriever = retriever
 
-        self.llm = ChatGoogleGenerativeAI(
-            model=model_name,
+        self.llm = ChatGroq(
+            groq_api_key=GROQ_API_KEY,
+            model_name=model_name,
             temperature=temperature,
-            top_p=top_p,
+            max_tokens=max_tokens,
         )
+
 
         self.prompt_template = ChatPromptTemplate.from_template(
             """
-You are a helpful AI assistant. Answer the question based ONLY on the provided context.
+You are a helpful AI assistant. Answer ONLY using the provided context.
 
 Context:
 {context}
@@ -46,10 +39,10 @@ Question:
 {question}
 
 Instructions:
-- Answer clearly and accurately
-- Use only the context provided
+- Answer accurately
+- Use only context
 - Do not hallucinate
-- If answer is not in context, say "Answer not found in documents"
+- If not found, say "Answer not found in documents"
 
 Answer:
 """
@@ -60,22 +53,16 @@ Answer:
         self,
         documents: List[Document],
     ) -> str:
-        """
-        Build context string from retrieved documents.
-        """
-
-        if not documents:
-            return ""
 
         context_parts = []
 
         for doc in documents:
 
-            source = doc.metadata.get("source", "Unknown source")
-            page = doc.metadata.get("page", "Unknown page")
+            source = doc.metadata.get("source", "Unknown")
+            page = doc.metadata.get("page", "Unknown")
 
             context_parts.append(
-                f"Source: {source} (Page: {page})\n{doc.page_content}"
+                f"Source: {source} (Page {page})\n{doc.page_content}"
             )
 
         return "\n\n".join(context_parts)
@@ -86,27 +73,18 @@ Answer:
         query: str,
         k: Optional[int] = None,
     ) -> str:
-        """
-        Generate answer using retrieved documents and LLM.
-        """
 
-        if not query:
-            raise ValueError("Query cannot be empty")
-
-        # Step 1: retrieve relevant docs
         retrieved_docs = self.retriever.retrieve(query, k=k)
 
-        # Step 2: build context
         context = self.build_context(retrieved_docs)
 
-        # Step 3: build prompt
         prompt = self.prompt_template.format(
             context=context,
             question=query,
         )
-
-        # Step 4: call LLM
+        print("Calling Groq LLM...")
         response = self.llm.invoke(prompt)
+        print("Groq response received")
 
         return response.content
 
@@ -116,10 +94,6 @@ Answer:
         query: str,
         k: Optional[int] = None,
     ):
-        """
-        Generate answer and return sources.
-        Useful for frontend or APIs.
-        """
 
         retrieved_docs = self.retriever.retrieve(query, k=k)
 

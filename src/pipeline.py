@@ -66,13 +66,12 @@ class RAGPipeline:
             lambda_mult=0.5,
         )
 
-
         # Step 5: Initialize generator
         self.generator = RAGGenerator(
             retriever=self.retriever,
             model_name=llm_model_name,
             temperature=0.2,
-            top_p=0.9,
+            max_tokens=512,
         )
 
 
