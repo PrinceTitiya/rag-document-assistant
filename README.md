@@ -112,6 +112,6 @@ You can override these either by editing `src/config.py` or by passing custom va
 
 ## Troubleshooting
 
-- **Missing API key**: If you see authentication errors, ensure `GOOGLE_API_KEY` is set in `.env` and that the `.env` file is in the project root.
+- **Missing API key**: If you see authentication errors, ensure `GROQ_API_KEY` is set in `.env` and that the `.env` file is in the project root.
 - **No documents loaded**: Confirm your PDFs are in `data/raw/` and that the loader used in `DocumentLoader` supports their format.
 - **Model or import errors**: Reinstall dependencies with `pip install -r requirements.txt` and ensure your Python version is compatible.
