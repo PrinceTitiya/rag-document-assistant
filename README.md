@@ -7,20 +7,22 @@ This repository implements a Retrieval-Augmented Generation (RAG) pipeline on to
 - **End-to-end RAG pipeline**: load PDFs, split into chunks, embed, index, and query.
 - **Config-driven**: central configuration in `src/config.py`.
 - **Persistent vector store**: powered by Chroma in `data/vectorstore`.
-- **Gemini-based answering**: uses `gemini-2.5-flash` via LangChain.
+- **Groq based answering**: uses `llama-3.1-8b-instant` via LangChain.
 
 ## Project Structure
 
+- **`main.py`**: primary entrypoint for running the RAG app end-to-end.
 - **`src/config.py`**: paths, embedding model, LLM model, and `GOOGLE_API_KEY` loading.
 - **`src/pipeline.py`**: `RAGPipeline` orchestration (loader → embedder → vector store → retriever → generator).
 - **`src/generator.py`**: `RAGGenerator` that builds prompts and calls Gemini.
+- **`notebook/`**: experimental Jupyter notebooks (e.g. `RAG_Ingestion.ipynb`) used for prototyping and analysis only.
 - **`data/raw/`**: input documents (PDFs) to be indexed.
 - **`data/vectorstore/`**: persisted Chroma index (created on first run).
 
 ## Prerequisites
 
 - **Python**: 3.9+ recommended.
-- **Google API key** with access to Gemini models.
+- **Groq API key** with access to groq models.(Free tier)
 
 ## Installation
 
@@ -39,8 +41,10 @@ pip install -r requirements.txt
 Create a `.env` file in the project root (if not already present) with:
 
 ```bash
-GOOGLE_API_KEY=your_google_api_key_here
+GROQ_API_KEY=your_groq_api_key_here
 ```
+
+get the key from: https://console.groq.com/keys
 
 The key is read in `src/config.py` via `python-dotenv`.
 
@@ -61,9 +65,19 @@ Any PDFs in `data/raw/` will be picked up by the document loader used inside the
 
 ## Usage
 
-### Basic Python usage
+### Running the main app
 
-In a Python shell or script:
+From the project root, run:
+
+```bash
+python3 main.py
+```
+
+This will execute the main RAG pipeline using the configuration in `src/config.py`.
+
+### Basic Python usage (library-style)
+
+In a Python shell or another script:
 
 ```python
 from src.pipeline import RAGPipeline
@@ -71,31 +85,12 @@ from src.pipeline import RAGPipeline
 # First run: builds embeddings and vector store, which may take some time.
 pipeline = RAGPipeline()
 
-question = "What is Ethereum and how does it work?"
+question = input("Enter the query")
 answer = pipeline.query(question)
 
 print("Q:", question)
 print("A:", answer)
 ```
-
-### Getting answers with sources
-
-To also retrieve which documents and pages were used:
-
-```python
-from src.pipeline import RAGPipeline
-
-pipeline = RAGPipeline()
-
-result = pipeline.query_with_sources("Explain the main idea of a blockchain.")
-
-print("Answer:", result["answer"])
-print("Sources:")
-for src in result["sources"]:
-    print(f"- {src['source']} (page {src['page']})")
-```
-
-This uses the `RAGGenerator.generate_with_sources` method under the hood.
 
 ## Configuration
 
@@ -104,8 +99,8 @@ Key configuration values live in `src/config.py`:
 - **`DATA_DIR`**: directory containing raw documents (`data/raw` by default).
 - **`VECTORSTORE_DIR`**: where the Chroma DB is persisted (`data/vectorstore`).
 - **`EMBEDDING_MODEL_NAME`**: sentence-transformer model (default `sentence-transformers/all-MiniLM-L6-v2`).
-- **`LLM_MODEL_NAME`**: Gemini model used for generation (default `gemini-2.5-flash`).
-- **`GOOGLE_API_KEY`**: loaded from `.env`.
+- **`LLM_MODEL_NAME`**: Groq model used for generation (default `llama-3.1-8b-instant`).
+- **`Groq_API_KEY`**: loaded from `.env`.
 
 You can override these either by editing `src/config.py` or by passing custom values into `RAGPipeline` when instantiating it.
 

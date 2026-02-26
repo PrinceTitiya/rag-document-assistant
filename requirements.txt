@@ -2,6 +2,7 @@
 langchain
 langchain-core
 langchain-community
+langchain-groq
 
 # Google Gemini integration
 langchain-google-genai
