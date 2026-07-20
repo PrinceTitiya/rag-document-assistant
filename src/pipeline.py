@@ -7,6 +7,7 @@ from src.embedding_manager import EmbeddingManager
 from src.vectorstore_manager import VectorStoreManager
 from src.retriever import RAGRetriever
 from src.generator import RAGGenerator
+from src.llm import build_llm
 
 from src.config import (
     DATA_DIR,
@@ -57,22 +58,29 @@ class RAGPipeline:
         )
 
 
-        # Step 4: Initialize retriever
-        self.retriever = RAGRetriever(
-            vectorstore=self.vectorstore,
-            search_type="mmr",
-            k=3,
-            fetch_k=10,
-            lambda_mult=0.5,
-        )
-
-
-        # Step 5: Initialize generator
-        self.generator = RAGGenerator(
-            retriever=self.retriever,
+        # Step 4: Build the shared LLM once (used for query expansion and generation)
+        self.llm = build_llm(
             model_name=llm_model_name,
             temperature=0.2,
             top_p=0.9,
+        )
+
+
+        # Step 5: Initialize retriever (multi-query expansion + hybrid
+        # dense/BM25 search, RRF-fused, cross-encoder re-ranked)
+        self.retriever = RAGRetriever(
+            vectorstore=self.vectorstore,
+            chunks=chunks,
+            k=5,
+            fetch_k=20,
+            llm=self.llm,
+        )
+
+
+        # Step 6: Initialize generator
+        self.generator = RAGGenerator(
+            retriever=self.retriever,
+            llm=self.llm,
         )
 
 

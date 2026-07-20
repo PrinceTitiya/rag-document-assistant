@@ -1,5 +1,9 @@
 .env
 lib
 venv
+.venv
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
 data/vectorstore
 .DS_Store

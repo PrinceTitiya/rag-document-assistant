@@ -7,6 +7,6 @@ load_dotenv()
 
 DATA_DIR = "data/raw"
 VECTORSTORE_DIR = "data/vectorstore"
-EMBEDDING_MODEL_NAME = "sentence-transformers/all-MiniLM-L6-v2"
-LLM_MODEL_NAME = "gemini-2.5-flash"
-GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
+EMBEDDING_MODEL_NAME = "BAAI/bge-small-en-v1.5"
+LLM_MODEL_NAME = "llama-3.3-70b-versatile"
+GROQ_API_KEY = os.getenv("GROQ_API_KEY")

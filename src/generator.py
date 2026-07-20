@@ -2,8 +2,9 @@
 
 from typing import List, Optional
 from langchain_core.documents import Document
-from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_core.prompts import ChatPromptTemplate
+
+from src.llm import retry_on_transient_groq_error, RETRYABLE_GROQ_ERRORS
 
 
 class RAGGenerator:
@@ -14,26 +15,18 @@ class RAGGenerator:
     def __init__(
         self,
         retriever,
-        model_name: str = "gemini-2.5-flash",
-        temperature: float = 0.2,
-        top_p: float = 0.9,
+        llm,
     ):
         """
         Args:
             retriever: RAGRetriever instance
-            model_name: Gemini model name
-            temperature: randomness control
-            top_p: nucleus sampling parameter
-            max_output_tokens: response length limit
+            llm: shared chat model (see src/llm.py) used for answer generation.
+                 Shared with the retriever's query expansion step so the
+                 pipeline only holds one LLM client.
         """
 
         self.retriever = retriever
-
-        self.llm = ChatGoogleGenerativeAI(
-            model=model_name,
-            temperature=temperature,
-            top_p=top_p,
-        )
+        self.llm = llm
 
         self.prompt_template = ChatPromptTemplate.from_template(
             """
@@ -81,6 +74,42 @@ Answer:
         return "\n\n".join(context_parts)
 
 
+    @retry_on_transient_groq_error
+    def _invoke_llm(self, prompt: str):
+        return self.llm.invoke(prompt)
+
+
+    def _generate_from_docs(
+        self,
+        query: str,
+        retrieved_docs: List[Document],
+    ) -> str:
+        """
+        Build the prompt from already-retrieved documents and call the LLM.
+        """
+
+        context = self.build_context(retrieved_docs)
+
+        prompt = self.prompt_template.format(
+            context=context,
+            question=query,
+        )
+
+        try:
+            response = self._invoke_llm(prompt)
+        except RETRYABLE_GROQ_ERRORS as e:
+            raise RuntimeError(
+                f"The Groq API is rate-limited or temporarily unavailable "
+                f"({type(e).__name__}), and retrying didn't succeed. Wait a "
+                "minute and try again, or send fewer questions in quick "
+                "succession — this pipeline makes two LLM calls per "
+                "question (query expansion + answer generation), so it uses "
+                "roughly double the API quota of a single-call pipeline."
+            ) from e
+
+        return response.content
+
+
     def generate(
         self,
         query: str,
@@ -93,22 +122,9 @@ Answer:
         if not query:
             raise ValueError("Query cannot be empty")
 
-        # Step 1: retrieve relevant docs
         retrieved_docs = self.retriever.retrieve(query, k=k)
 
-        # Step 2: build context
-        context = self.build_context(retrieved_docs)
-
-        # Step 3: build prompt
-        prompt = self.prompt_template.format(
-            context=context,
-            question=query,
-        )
-
-        # Step 4: call LLM
-        response = self.llm.invoke(prompt)
-
-        return response.content
+        return self._generate_from_docs(query, retrieved_docs)
 
 
     def generate_with_sources(
@@ -121,9 +137,15 @@ Answer:
         Useful for frontend or APIs.
         """
 
+        if not query:
+            raise ValueError("Query cannot be empty")
+
+        # Retrieve once so the reported sources always match the context
+        # actually sent to the LLM (previously this retrieved twice, doubling
+        # embedding cost and letting sources drift from the generated answer).
         retrieved_docs = self.retriever.retrieve(query, k=k)
 
-        answer = self.generate(query, k=k)
+        answer = self._generate_from_docs(query, retrieved_docs)
 
         sources = [
             {

@@ -3,22 +3,28 @@ langchain
 langchain-core
 langchain-community
 
-# Google Gemini integration
-langchain-google-genai
-google-generativeai
+# Groq integration
+langchain-groq
+
+# Retry/backoff for transient Groq API errors (rate limits, timeouts)
+tenacity
 
 # Vector database
 chromadb
+langchain-chroma
 
 # Embedding models
 sentence-transformers
 langchain-huggingface
 
+# Hybrid retrieval (BM25 keyword search, fused with dense embeddings)
+rank_bm25
+
 # Environment variable management
 python-dotenv
 
-# PDF loading support
-pypdf
+# PDF loading support (table-aware extraction)
+pdfplumber
 
 # Optional but recommended (performance + compatibility)
 numpy
