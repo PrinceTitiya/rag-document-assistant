@@ -6,4 +6,6 @@ __pycache__/
 *.pyc
 .ipynb_checkpoints/
 data/vectorstore
+data/uploads
+data/uploads_vectorstore
 .DS_Store

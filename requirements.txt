@@ -29,3 +29,8 @@ pdfplumber
 # Optional but recommended (performance + compatibility)
 numpy
 tqdm
+
+# API server (frontend talks to the pipeline over HTTP)
+fastapi
+uvicorn
+python-multipart
